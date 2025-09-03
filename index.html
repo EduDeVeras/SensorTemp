@@ -97,13 +97,13 @@
             <p class="text-slate-400 mb-6">Defina os limites de temperatura para o ambiente.</p>
             
             <div class="mb-6">
-                <label for="min-temp-slider" class="flex justify-between mb-1"><span>Temperatura Mínima</span> <span id="min-temp-value" class="font-bold">18°C</span></label>
-                <input id="min-temp-slider" type="range" min="0" max="50" value="18" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                <label for="min-temp-slider" class="flex justify-between mb-1"><span>Temperatura Mínima</span> <span id="min-temp-value" class="font-bold">55°C</span></label>
+                <input id="min-temp-slider" type="range" min="0" max="150" value="55" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
             </div>
 
             <div class="mb-8">
-                <label for="max-temp-slider" class="flex justify-between mb-1"><span>Temperatura Máxima</span> <span id="max-temp-value" class="font-bold">26°C</span></label>
-                <input id="max-temp-slider" type="range" min="0" max="50" value="26" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                <label for="max-temp-slider" class="flex justify-between mb-1"><span>Temperatura Máxima</span> <span id="max-temp-value" class="font-bold">135°C</span></label>
+                <input id="max-temp-slider" type="range" min="0" max="150" value="135" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
             </div>
 
             <button id="close-settings-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-colors">
@@ -136,12 +136,11 @@
             const maxTempValue = document.getElementById('max-temp-value');
 
             // --- ESTADO DA APLICAÇÃO ---
-            const originalApiUrl = "https://8f5315c3-2871-4df7-acd2-e32a227cec00-00-no5slqk2nw43.janeway.replit.dev/last";
-            const apiUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalApiUrl)}`;
+            const apiUrl = "https://8f5315c3-2871-4df7-acd2-e32a227cec00-00-no5slqk2nw43.janeway.replit.dev/last";
             let state = {
                 currentTemp: null,
-                minTemp: 18,
-                maxTemp: 26,
+                minTemp: 55, // <-- VALOR ATUALIZADO
+                maxTemp: 135, // <-- VALOR ATUALIZADO
                 history: []
             };
 
@@ -200,7 +199,8 @@
                     let tempStatusClass = 'text-slate-300';
                     if (record.temp < state.minTemp) tempStatusClass = 'text-blue-400';
                     if (record.temp > state.maxTemp) tempStatusClass = 'text-amber-400';
-                    if (record.temp < state.minTemp - 2 || record.temp > state.maxTemp + 5) tempStatusClass = 'text-red-400';
+                    // Lógica de alerta para a faixa de temperatura mais ampla
+                    if (record.temp < state.minTemp - 5 || record.temp > state.maxTemp + 10) tempStatusClass = 'text-red-400';
 
                     li.className = 'flex justify-between items-center bg-slate-700/50 p-2 rounded-md';
                     li.innerHTML = `
@@ -223,7 +223,8 @@
 
                 if (temp < min) { status = 'cold'; borderColor = 'border-blue-500'; }
                 if (temp > max) { status = 'hot'; borderColor = 'border-amber-500'; }
-                if (temp < min - 2 || temp > max + 5) { status = 'alert'; borderColor = 'border-red-500'; }
+                 // Lógica de alerta para a faixa de temperatura mais ampla
+                if (temp < min - 5 || temp > max + 10) { status = 'alert'; borderColor = 'border-red-500'; }
 
                 mainPanel.className = mainPanel.className.replace(/border-\w+-\d+/g, borderColor);
 
@@ -235,10 +236,10 @@
                     statusDescriptionEl.textContent = "O ambiente está operando dentro dos parâmetros ideais de temperatura.";
                 } else if (status === 'cold') {
                     statusTextEl.textContent = "Temperatura Baixa";
-                    statusDescriptionEl.textContent = "O ambiente está mais frio que o ideal. Verifique o sistema de aquecimento.";
+                    statusDescriptionEl.textContent = "O ambiente está mais frio que o ideal.";
                 } else if (status === 'hot') {
                     statusTextEl.textContent = "Temperatura Elevada";
-                    statusDescriptionEl.textContent = "O ambiente está mais quente que o ideal. Verifique o sistema de refrigeração.";
+                    statusDescriptionEl.textContent = "O ambiente está mais quente que o ideal.";
                 }
                 
                 if(statusIconEl.innerHTML !== ICONS[status]) {
