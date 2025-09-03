@@ -1,1 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wokwi - Monitor de Temperatura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.8s ease;
+        }
+        .temp-display {
+            font-weight: 900;
+            font-size: 8rem; /* 128px */
+            line-height: 1;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 1.5rem; /* 24px */
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+        .status-dot {
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        #emergency-alert {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .character-img {
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            max-height: 500px;
+            object-fit: cover;
+            border-radius: 1.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-800 text-white transition-all duration-1000 ease-in-out">
+
+    <!-- Emergency Alert Modal -->
+    <div id="emergency-alert" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-red-800 border-4 border-red-500 rounded-2xl p-8 text-center max-w-lg mx-auto shadow-2xl transform transition-all">
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h2 class="text-4xl font-extrabold mt-4">ALERTA DE EMERGÊNCIA</h2>
+            <p class="text-xl mt-2" id="emergency-message">Temperatura em nível crítico!</p>
+            <button onclick="dismissAlert()" class="mt-8 bg-white text-red-800 font-bold py-2 px-6 rounded-lg hover:bg-red-100 transition-colors">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <div class="min-h-screen flex flex-col items-center justify-center p-4 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl lg:text-5xl font-bold">Monitor de Ambiente Interno</h1>
+            <p class="text-lg text-gray-300 mt-2">Simulação em tempo real via Wokwi ESP32</p>
+        </header>
+
+        <main class="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Coluna Principal -->
+            <div class="lg:col-span-2 flex flex-col gap-8">
+                <!-- Card Temperatura Atual -->
+                <div class="card p-8 flex flex-col items-center justify-center text-center">
+                    <h2 class="text-2xl font-medium text-gray-200">Temperatura Atual</h2>
+                    <div class="temp-display my-4">
+                        <span id="current-temp">--.-</span><span class="text-7xl align-top">&deg;C</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-2xl font-semibold" id="status-container">
+                        <div class="status-dot bg-gray-400" id="status-dot"></div>
+                        <span id="status-text">Analisando...</span>
+                    </div>
+                </div>
+                 <!-- Card Estatísticas -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="card p-6 text-center">
+                        <h3 class="text-xl font-semibold text-gray-200">Mínima Registrada</h3>
+                        <p class="text-5xl font-bold mt-2" id="min-temp">--.- &deg;C</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <h3 class="text-xl font-semibold text-gray-200">Máxima Registrada</h3>
+                        <p class="text-5xl font-bold mt-2" id="max-temp">--.- &deg;C</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna Personagem -->
+            <div class="card p-6 flex flex-col items-center justify-center">
+                <h2 class="text-2xl font-semibold mb-4">Condição da Operadora</h2>
+                <div class="w-full aspect-[3/4] rounded-xl overflow-hidden bg-black/20 flex items-center justify-center">
+                    <img id="character-image" src="https://placehold.co/400x550/777/FFF?text=Aguardando+Dados" alt="Personagem do Clima" class="character-img w-full h-full opacity-50">
+                </div>
+            </div>
+        </main>
+        
+        <footer class="mt-8 text-center text-gray-400">
+            <p>Este é um projeto de simulação. Para dados reais, conecte a um ESP32 físico ou a uma API de clima.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÕES ---
+        const TEMP_MIN_EMERGENCIA = 10;
+        const TEMP_MAX_EMERGENCIA = 38;
+        const TEMP_MUITO_FRIO = 16;
+        const TEMP_MUITO_QUENTE = 30;
+
+        const IMAGENS = {
+            frio: 'https://tse3.mm.bing.net/th/id/OIP.TyCSGNCOBYSsKJpJ_7-ZigHaLJ?rs=1&pid=ImgDetMain&o=7&rm=3', // Anime girl in winter clothes
+            normal: 'https://images5.alphacoders.com/132/1329583.jpg', // Anime girl in casual clothes
+            quente: 'https://img.freepik.com/premium-photo/beautiful-fantasy-sexy-anime-girl-violet-bikini_483949-6748.jpg?w=740' // Anime girl in summer/beach clothes
+        };
+        
+        // --- ELEMENTOS DA UI ---
+        const currentTempEl = document.getElementById('current-temp');
+        const minTempEl = document.getElementById('min-temp');
+        const maxTempEl = document.getElementById('max-temp');
+        const statusDotEl = document.getElementById('status-dot');
+        const statusTextEl = document.getElementById('status-text');
+        const characterImageEl = document.getElementById('character-image');
+        const bodyEl = document.body;
+        const emergencyAlertEl = document.getElementById('emergency-alert');
+        const emergencyMessageEl = document.getElementById('emergency-message');
+        const statusContainerEl = document.getElementById('status-container');
+
+        // --- ESTADO DA APLICAÇÃO ---
+        let minTemp = null;
+        let maxTemp = null;
+        let currentTemp = 25; // Temperatura inicial da simulação
+        let alertIsVisible = false;
+
+        // --- FUNÇÕES DE LÓGICA ---
+
+        function updateUI(temp) {
+            // Atualiza a temperatura principal
+            currentTempEl.textContent = temp.toFixed(1).replace('.', ',');
+
+            // Atualiza mínimas e máximas
+            if (minTemp === null || temp < minTemp) minTemp = temp;
+            if (maxTemp === null || temp > maxTemp) maxTemp = temp;
+            minTempEl.innerHTML = `${minTemp.toFixed(1).replace('.', ',')} &deg;C`;
+            maxTempEl.innerHTML = `${maxTemp.toFixed(1).replace('.', ',')} &deg;C`;
+            
+            // --- LÓGICA DE ATUALIZAÇÃO VISUAL ---
+            let statusText = 'Condições Favoráveis';
+            let statusColor = 'bg-green-500';
+            let characterImgSrc = IMAGENS.normal;
+            let bodyBg = 'bg-gray-800';
+
+            if (temp < TEMP_MUITO_FRIO) {
+                statusText = 'Ambiente Frio';
+                statusColor = 'bg-blue-400';
+                characterImgSrc = IMAGENS.frio;
+                bodyBg = 'bg-blue-900';
+            } else if (temp > TEMP_MUITO_QUENTE) {
+                statusText = 'Ambiente Quente';
+                statusColor = 'bg-orange-500';
+                characterImgSrc = IMAGENS.quente;
+                bodyBg = 'bg-orange-900';
+            }
+            
+            // Lógica de Emergência
+            if (temp < TEMP_MIN_EMERGENCIA || temp > TEMP_MAX_EMERGENCIA) {
+                statusText = 'PERIGO: TEMPERATURA CRÍTICA';
+                statusColor = 'bg-red-600';
+                bodyBg = 'bg-red-900';
+                if (!alertIsVisible) {
+                   showEmergencyAlert(temp);
+                }
+            }
+            
+            // Aplica as atualizações na UI
+            statusTextEl.textContent = statusText;
+            statusDotEl.className = `status-dot ${statusColor}`;
+            statusContainerEl.className = `flex items-center gap-3 text-2xl font-semibold ${temp > TEMP_MAX_EMERGENCIA ? 'text-red-300' : 'text-white'}`;
+            bodyEl.className = `${bodyBg} text-white transition-all duration-1000 ease-in-out`;
+
+            if (characterImageEl.src !== characterImgSrc) {
+                characterImageEl.style.opacity = '0';
+                characterImageEl.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    characterImageEl.src = characterImgSrc;
+                    characterImageEl.style.opacity = '1';
+                    characterImageEl.style.transform = 'scale(1)';
+                }, 500);
+            }
+        }
+
+        function showEmergencyAlert(temp) {
+            emergencyMessageEl.textContent = `A temperatura atingiu ${temp.toFixed(1).replace('.', ',')}°C, um nível considerado crítico.`;
+            emergencyAlertEl.classList.remove('hidden');
+            alertIsVisible = true;
+        }
+
+        function dismissAlert() {
+            emergencyAlertEl.classList.add('hidden');
+            alertIsVisible = false;
+        }
+
+        // --- SIMULADOR DE DADOS (Wokwi ESP32) ---
+        // No mundo real, você receberia dados de um WebSocket ou API aqui.
+        function simulateTemperature() {
+            // Simula uma flutuação suave de temperatura
+            const time = new Date().getTime() / 100000;
+            const tempVariation = (Math.sin(time) + Math.sin(time * 2.7)) * 2; // Variação mais natural
+            currentTemp += (Math.random() - 0.5) * 0.5 + tempVariation * 0.05;
+
+            // Mantém a temperatura dentro de uma faixa plausível de simulação
+            if (currentTemp > 45) currentTemp = 45;
+            if (currentTemp < 5) currentTemp = 5;
+
+            updateUI(currentTemp);
+        }
+
+        // --- INICIALIZAÇÃO ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializa com a primeira leitura
+            updateUI(currentTemp); 
+            // Inicia a simulação
+            setInterval(simulateTemperature, 3000); // Atualiza a cada 3 segundos
+        });
+
+    </script>
+
+</body>
+</html>
 
